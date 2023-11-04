@@ -1,6 +1,7 @@
 "use strict";
 
 parserFactory.register("panda-novel.com", () => new PandaNovelParser());
+parserFactory.register("pandasnovel.com", () => new PandaNovelParser());
 
 class PandaNovelParser extends Parser {
     constructor() {
@@ -44,26 +45,40 @@ class PandaNovelParser extends Parser {
     }
 
     findContent(dom) {
-        let contentNode = dom.querySelector("div.novel-content div")
-        if ((contentNode.innerHTML == "") || contentNode.innerText.trim().startsWith("Please wait for page data to load...")){
-            const scriptNode = [...dom.querySelectorAll("script:not([src])")]
-                .filter(x => x.text.includes("_pageParameter['contents']"))[0];
-            let contentText = (scriptNode && scriptNode.text) || "";
-            contentText = contentText.trim()
-                .replace(/\\(?=["/])/g, "")
-                .replace(/.*?_pageParameter\['contents'\] *= *"/, "")
-                .replace(/";?$/, "")
-            try {
-                contentText = JSON.parse(JSON.stringify(contentText).replace(/\\\\/g, "\\")); //For proper Unicode conversion
-            } catch (e) { }  // eslint-disable-line no-empty
-            util.parseHtmlAndInsertIntoContent(contentText, contentNode)
-        }
-        return contentNode;
+        return dom.querySelector("#novelArticle2");
     }
 
     customRawDomToContentStep(webPage, content) {
-        let html = "\n<p>" + content.innerHTML.replaceAll(/<br><br>|<\/p><p>/g, "</p>\n<p>").replaceAll(/(?<!\n)<p>/g, "\n<p>") + "</p>";
-        util.parseHtmlAndInsertIntoContent(html, content)
+        let html = this.getRealContent(webPage, content);
+        html = html.replaceAll(/<br><br>|<\/p><p>/g, "</p>\n<p>").replaceAll(/(?<!\n)<p>/g, "\n<p>");
+        util.parseHtmlAndInsertIntoContent(html, content);
+        util.removeChildElementsMatchingCss(content, "ins");
+    }
+
+    getRealContent(webPage, content) {
+        let startString = "_pageParameter['contents'] =";
+        let scriptElement = [...webPage.rawDom.querySelectorAll("script")]
+            .map(s => s.textContent.trim())
+            .filter(s => s.includes(startString));
+        if (0 === scriptElement.length) {
+            return "\n<p>" + content.innerHTML + "</p>";
+        }
+        let temp = scriptElement[0];
+        let start = temp.indexOf("\"");
+        let end = temp.lastIndexOf("\"");
+        temp = this.addMissingPTag(temp.substring(start + 1, end));
+        temp = "{\"a\": \"" +  temp + "\"}";
+        let temp2 = JSON.parse(temp);
+        return temp2.a;
+    }
+
+    addMissingPTag(html) {
+        let addStartTag = (s) => s.trim().startsWith("<p>")
+            ? s
+            : "<p>" + s;
+        let paragraphs = html.split("<\\/p>")
+            .map(addStartTag);
+        return paragraphs.join("<\\/p>");
     }
 
     extractTitleImpl(dom) {

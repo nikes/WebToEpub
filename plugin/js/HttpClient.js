@@ -73,6 +73,9 @@ class FetchErrorHandler {
         // seconds to wait before each retry (note: order is reversed)
         let retryDelay = [120, 60, 30, 15];
         switch(response.status) {
+        case 403:
+            alert(chrome.i18n.getMessage("warning403ErrorResponse", new URL(response.url).hostname));
+            return {retryDelay: [1], promptUser: true};
         case 429:
             FetchErrorHandler.show429Error(response);
             return {retryDelay: retryDelay, promptUser: true};
@@ -141,6 +144,13 @@ class HttpClient {
         if (wrapOptions.makeTextDecoder != null) {
             wrapOptions.responseHandler.makeTextDecoder = wrapOptions.makeTextDecoder;
         }
+        return HttpClient.wrapFetchImpl(url, wrapOptions);
+    }
+
+    static fetchHtml(url) {
+        let wrapOptions = {
+            responseHandler: new FetchHtmlResponseHandler()
+        };
         return HttpClient.wrapFetchImpl(url, wrapOptions);
     }
 
@@ -267,5 +277,15 @@ class FetchTextResponseHandler extends FetchResponseHandler {
 
     extractContentFromResponse(response) {
         return super.responseToText(response);
+    }
+}
+
+class FetchHtmlResponseHandler extends FetchResponseHandler {
+    constructor() {
+        super();
+    }
+
+    extractContentFromResponse(response) {
+        return super.responseToHtml(response);
     }
 }

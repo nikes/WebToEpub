@@ -1,6 +1,7 @@
 "use strict";
 
 parserFactory.register("ranobes.net", () => new RanobesParser());
+parserFactory.register("ranobes.top", () => new RanobesParser());
 
 class RanobesParser extends Parser{
     constructor() {
@@ -43,7 +44,7 @@ class RanobesParser extends Parser{
 
     extractPartialChapterList(dom) {
         return RanobesParser.extractTocJson(dom).chapters.map(c => ({
-            sourceUrl:  `https://ranobes.net/read-${c.id}.html`,
+            sourceUrl:  c.link,
             title: c.title
         }));
     }

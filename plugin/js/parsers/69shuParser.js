@@ -1,6 +1,6 @@
 "use strict";
 
-parserFactory.register("69shu.com", function() { return new ShuParser() });
+parserFactory.register("69shuba.com", function() { return new ShuParser() });
 
 class ShuParser extends Parser{
     constructor() {
@@ -24,6 +24,11 @@ class ShuParser extends Parser{
 
     findCoverImageUrl(dom) {
         return util.getFirstImgSrc(dom, "div.bookbox");
+    }
+
+    removeUnwantedElementsFromContentElement(element) {
+        util.removeChildElementsMatchingCss(element, ".txtinfo, #txtright, .bottom-ad");
+        super.removeUnwantedElementsFromContentElement(element);
     }
 
     async fetchChapter(url) {

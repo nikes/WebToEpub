@@ -694,6 +694,36 @@ class Parser {
         }
         return chapters;
     }
+
+    moveFootnotes(dom, content, footnotes) {
+        if (0 < footnotes.length) {
+            let list = dom.createElement("ol");
+            for(let f of footnotes) {
+                let item = dom.createElement("li");
+                f.removeAttribute("style");
+                item.appendChild(f);
+                list.appendChild(item);
+            }
+            let header = dom.createElement("h2");
+            header.appendChild(dom.createTextNode("Footnotes"));
+            content.appendChild(header);
+            content.appendChild(list);
+        }
+    }
+
+    async walkPagesOfChapter(url, moreChapterTextUrl) {
+        let dom = (await HttpClient.wrapFetch(url)).responseXML;
+        let count = 2;
+        let nextUrl = moreChapterTextUrl(dom, url, count);
+        let oldContent = this.findContent(dom);
+        while(nextUrl != null) {
+            let nextDom = (await HttpClient.wrapFetch(nextUrl)).responseXML;
+            let newContent = this.findContent(nextDom);
+            util.moveChildElements(newContent, oldContent);
+            nextUrl = moreChapterTextUrl(nextDom, url, ++count);
+        }
+        return dom;
+    }    
 }
 
 Parser.WEB_TO_EPUB_CLASS_NAME = "webToEpubContent";
